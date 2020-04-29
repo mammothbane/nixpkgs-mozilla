@@ -185,8 +185,7 @@ let
                 mv "$i" "$target"
                 cat > "$i" <<EOF
             #!${self.bash}/bin/bash
-            #export RUSTFLAGS=''${RUSTFLAGS:-"--sysroot=$out"}
-            exec "${stdenv.glibc}/lib/ld-linux-x86-64.so.2" "$target" "\$@"
+            RUSTFLAGS=''${CARGO_BUILD_RUSTFLAGS:-"--sysroot=$out"} exec "${stdenv.glibc}/lib/ld-linux-x86-64.so.2" "$target" "\$@"
             EOF
 
                 chmod +x $i
@@ -290,16 +289,6 @@ let
           super.pkgs.symlinkJoin {
             name = name + "-" + version;
             paths = components;
-            postBuild = ''
-          # If rustc is in the derivation, we need to copy the rustc
-          # executable into the final derivation. This is required
-          # for making rustc find the correct SYSROOT.
-              if [ -e "$out/bin/__rustc.unpatched" ]; then
-                RUSTC_PATH=$(realpath -e $out/bin/__rustc.unpatched)
-                rm $out/bin/__rustc.unpatched
-                cp $RUSTC_PATH $out/bin/__rustc.unpatched
-              fi
-            '';
 
             # Add the compiler as part of the propagated build inputs in order
             # to run:
