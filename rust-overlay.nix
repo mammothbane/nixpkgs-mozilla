@@ -185,6 +185,7 @@ let
                 mv "$i" "$target"
                 cat > "$i" <<EOF
             #!${self.bash}/bin/bash
+            #export RUSTFLAGS=''${RUSTFLAGS:-"--sysroot=$out"}
             exec "${stdenv.glibc}/lib/ld-linux-x86-64.so.2" "$target" "\$@"
             EOF
 
@@ -293,10 +294,10 @@ let
           # If rustc is in the derivation, we need to copy the rustc
           # executable into the final derivation. This is required
           # for making rustc find the correct SYSROOT.
-              if [ -e "$out/bin/rustc" ]; then
-                RUSTC_PATH=$(realpath -e $out/bin/rustc)
-                rm $out/bin/rustc
-                cp $RUSTC_PATH $out/bin/rustc
+              if [ -e "$out/bin/__rustc.unpatched" ]; then
+                RUSTC_PATH=$(realpath -e $out/bin/__rustc.unpatched)
+                rm $out/bin/__rustc.unpatched
+                cp $RUSTC_PATH $out/bin/__rustc.unpatched
               fi
             '';
 
