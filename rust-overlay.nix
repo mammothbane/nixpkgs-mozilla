@@ -171,13 +171,24 @@ let
 
               header "Patching interpreter of ELF executables and libraries in $dir"
               local i
+              local target
+
               while IFS= read -r -d ''$'\0' i; do
                 if [[ "$i" =~ .build-id ]]; then continue; fi
                 if ! isELF "$i"; then continue; fi
+
+                if [ "$(basename "$(dirname "$i")")" != "bin" ]; then continue; fi
+
                 echo "setting interpreter of $i"
-                patchelf \
-                  --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" \
-                  "$i" || true
+
+                target="$(dirname "$i")/__$(basename "$i").unpatched"
+                mv "$i" "$target"
+                cat > "$i" <<EOF
+            #!${self.bash}/bin/bash
+            exec "${stdenv.glibc}/lib/ld-linux-x86-64.so.2" "$target" "\$@"
+            EOF
+
+                chmod +x $i
               done < <(find "$dir" -type f -print0)
             }
 
@@ -279,9 +290,9 @@ let
             name = name + "-" + version;
             paths = components;
             postBuild = ''
-	      # If rustc is in the derivation, we need to copy the rustc
-	      # executable into the final derivation. This is required
-	      # for making rustc find the correct SYSROOT.
+          # If rustc is in the derivation, we need to copy the rustc
+          # executable into the final derivation. This is required
+          # for making rustc find the correct SYSROOT.
               if [ -e "$out/bin/rustc" ]; then
                 RUSTC_PATH=$(realpath -e $out/bin/rustc)
                 rm $out/bin/rustc
